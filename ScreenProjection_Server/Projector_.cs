@@ -1,7 +1,6 @@
-﻿using System;
+﻿using ScreenProjection_Server.Properties;
+using System;
 using System.Collections.Generic;
-using System.ComponentModel;
-using System.Data;
 using System.Drawing;
 using System.Linq;
 using System.Net;
@@ -13,8 +12,9 @@ using System.Windows.Forms;
 
 namespace ScreenProjection_Server
 {
-    public partial class Form1 : Form
+    class Projector_ : ApplicationContext
     {
+        private NotifyIcon trayIcon;
         private int portRequestConnect = 10063;
         private Socket socket;
         private IPEndPoint iPEndPoint;
@@ -22,21 +22,22 @@ namespace ScreenProjection_Server
         private Form2 form2 = null;
         private Thread processThread;
 
-        public Form1()
+        public Projector_()
         {
-            InitializeComponent();
-        }
-
-        private void Form1_Load(object sender, EventArgs e)
-        {
-            notifyIcon1.Visible = true;
+            trayIcon = new NotifyIcon()
+            {
+                Icon = new System.Drawing.Icon(SystemIcons.Exclamation, 40, 40),
+                ContextMenu = new ContextMenu(new MenuItem[]
+                {
+                    new MenuItem("Option"),
+                    new MenuItem("Exit", Exit)
+                }),
+                Visible = true
+            };
 
             processThread = new Thread(listenRequestProcess);
             processThread.Start();
-
-            
         }
-
         private void listenRequestProcess()
         {
             while (true)
@@ -47,15 +48,26 @@ namespace ScreenProjection_Server
 
         private void listenRequest()
         {
+            byte[] messageRecv;
+            int byteRecv = 0;
+            string recvMsg = "";
             socket = new Socket(AddressFamily.InterNetwork, SocketType.Stream, ProtocolType.Tcp);
             iPEndPoint = new IPEndPoint(IPAddress.Any, portRequestConnect);
             socket.Bind(iPEndPoint);
             socket.Listen(1);
 
-            serverAccept = socket.Accept();
-            byte[] messageRecv = new byte[512];
-            int byteRecv = serverAccept.Receive(messageRecv);
-            string recvMsg = Encoding.ASCII.GetString(messageRecv, 0, byteRecv);
+            try
+            {
+                serverAccept = socket.Accept();
+                messageRecv = new byte[512];
+                byteRecv = serverAccept.Receive(messageRecv);
+                recvMsg = Encoding.ASCII.GetString(messageRecv, 0, byteRecv);
+            }
+            catch (Exception)
+            {
+                socketClose();
+                return;
+            }
 
             string pc = recvMsg.Substring(recvMsg.Length - 2);
             string title = "Request Screen Projection";
@@ -65,9 +77,8 @@ namespace ScreenProjection_Server
             result = MessageBox.Show(message, title, buttons);
 
             byte[] data;
-            string responseRequest;
-            if (result == DialogResult.Yes) responseRequest = "yes";
-            else responseRequest = "no";
+            string responseRequest = "no";
+            if (result == DialogResult.Yes) responseRequest = "yes"; 
 
             try
             {
@@ -77,36 +88,19 @@ namespace ScreenProjection_Server
             catch (Exception)
             {
                 MessageBox.Show("Failed");
+                responseRequest = "no";
             }
 
-            socket.Close();
-            serverAccept.Close();
+            socketClose();
 
             if (responseRequest.Equals("yes"))
             {
                 form2 = new Form2(pc, recvMsg);
                 form2.ShowDialog();
             }
-            else
-            {
-                //clear mbox
-            }
         }
 
-
-        private void Button1_Click(object sender, EventArgs e)
-        {
-            //listenRequest();
-            notifyIcon1.Visible = true;
-            this.Hide();
-        }
-
-        private void Form1_FormClosing(object sender, FormClosingEventArgs e)
-        {
-            
-        }
-
-        private void Form1_FormClosed(object sender, FormClosedEventArgs e)
+        private void socketClose()
         {
             try
             {
@@ -117,24 +111,13 @@ namespace ScreenProjection_Server
             { }
         }
 
-        private void Form1_Shown(object sender, EventArgs e)
-        {
-            
-        }
 
-        private void NotifyIcon1_DoubleClick(object sender, EventArgs e)
+        private void Exit(object sender, EventArgs e)
         {
-            this.Show();
-            notifyIcon1.Visible = false;
-        }
-
-        private void Form1_Resize(object sender, EventArgs e)
-        {
-            if(this.WindowState == FormWindowState.Minimized)
-            {
-                this.Hide();
-                notifyIcon1.Visible = true;
-            }
+            socketClose();
+            trayIcon.Visible = false;
+            //Application.Exit();
+            System.Environment.Exit(0);
         }
     }
 }

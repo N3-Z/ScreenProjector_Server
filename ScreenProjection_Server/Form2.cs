@@ -43,10 +43,17 @@ namespace ScreenProjection_Server
         }
         private void listen()
         {
+            
             while (!client.Connected)
             {
-                listenener.Start();
-                client = listenener.AcceptTcpClient();
+                try
+                {
+                    listenener.Start();
+                    client = listenener.AcceptTcpClient();
+                }
+                catch (Exception)
+                {
+                }
 
             }
             getImage_thread.Start();
@@ -54,7 +61,7 @@ namespace ScreenProjection_Server
         private void stoplisten()
         {
             listenener.Stop();
-            client.Close();
+            //client.Close();
             client = null;
             if (listening_thread.IsAlive) listening_thread.Abort();
             if (getImage_thread.IsAlive) getImage_thread.Abort();
@@ -62,17 +69,17 @@ namespace ScreenProjection_Server
         private void receiveImage()
         {
             BinaryFormatter bin = new BinaryFormatter();
-            try
+            while (client.Connected)
             {
-                while (client.Connected)
+                try
                 {
                     mainStream = client.GetStream();
                     pictureBox1.Image = (Image)bin.Deserialize(mainStream);
                     Console.WriteLine("recv");
                 }
-            }
-            catch (Exception e)
-            {
+                catch (Exception)
+                {
+                }
             }
         }
         protected override void OnLoad(EventArgs e)
@@ -81,6 +88,12 @@ namespace ScreenProjection_Server
             listenener = new TcpListener(IPAddress.Any, portRecvDesktop);
             listening_thread.Start();
         }
+
+        private void PictureBox1_Click(object sender, EventArgs e)
+        {
+
+        }
+
         protected override void OnFormClosing(FormClosingEventArgs e)
         {
             base.OnFormClosing(e);
