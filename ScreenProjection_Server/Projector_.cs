@@ -1,13 +1,9 @@
-﻿using ScreenProjection_Server.Properties;
-using System;
-using System.Collections.Generic;
+﻿using System;
 using System.Drawing;
-using System.Linq;
 using System.Net;
 using System.Net.Sockets;
 using System.Text;
 using System.Threading;
-using System.Threading.Tasks;
 using System.Windows.Forms;
 
 namespace ScreenProjection_Server
@@ -26,10 +22,9 @@ namespace ScreenProjection_Server
         {
             trayIcon = new NotifyIcon()
             {
-                Icon = new System.Drawing.Icon(SystemIcons.Exclamation, 40, 40),
+                Icon = new Icon(SystemIcons.Exclamation, 40, 40),
                 ContextMenu = new ContextMenu(new MenuItem[]
                 {
-                    new MenuItem("Option"),
                     new MenuItem("Exit", Exit)
                 }),
                 Visible = true
@@ -95,7 +90,7 @@ namespace ScreenProjection_Server
 
             if (responseRequest.Equals("yes"))
             {
-                form2 = new Form2(pc, recvMsg);
+                form2 = new Form2(pc);
                 form2.ShowDialog();
             }
         }
@@ -116,7 +111,6 @@ namespace ScreenProjection_Server
         {
             socketClose();
             trayIcon.Visible = false;
-            //Application.Exit();
             System.Environment.Exit(0);
         }
     }
